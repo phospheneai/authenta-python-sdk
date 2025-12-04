@@ -5,7 +5,7 @@ A Python SDK for the Authenta API to detect deepfakes and manipulated media.
 
 ### 1. Create a Client and Run a Simple Detection
 ```python
-from Client import AuthentaClient
+from authenta import AuthentaClient
 
 client = AuthentaClient(
     base_url="https://dev.console.authenta.ai/api",  # or https://platform.authenta.ai/api
