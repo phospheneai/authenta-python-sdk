@@ -3,6 +3,16 @@ A Python SDK for the Authenta API to detect deepfakes and manipulated media.
 
 ## Getting started
 
+## Installation
+
+Make sure you have Python >= 3.8. Then install the package:
+
+```bash
+git clone <your-repo-url>
+cd authenta-sdk
+pip install -e .
+```
+
 ### 1. Create a Client and Run a Simple Detection
 ```python
 from authenta import AuthentaClient
