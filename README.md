@@ -32,7 +32,7 @@ The package provides basic functionalities for:
 from authenta import AuthentaClient
 
 client = AuthentaClient(
-    base_url="https://platform.authenta.ai/api",  # platform base : https://platform.authenta.ai 
+    base_url="https://platform.authenta.ai/api",  # platform base: https://platform.authenta.ai 
     client_id="YOUR_CLIENT_ID",
     client_secret="YOUR_CLIENT_SECRET",
 )
@@ -101,6 +101,48 @@ media = client.upload_file("samples/video.mp4", model_type="DF-1")
 print(media["mid"], media["status"])
 ```
 
+## Visualizing results
+
+The SDK provides helpers in `authenta.visualization` to save heatmaps and videos with bounding boxes to your local disk.
+
+### Save heatmap (image or video)
+```
+from authenta.visualization import save_heatmap
+
+# For AC-1 (image): saves a heatmap image (e.g. JPG/PNG)
+media = client.process("examples/image.jpg", model_type="AC-1")
+save_heatmap(
+    media,
+    out_path="results/image_heatmap.jpg",
+    participant_id=0,
+    model_type="AC-1",
+)
+
+# For DF-1 (video): saves a heatmap video (e.g. MP4)
+media = client.process("examples/video.mp4", model_type="DF-1")
+save_heatmap(
+    media,
+    out_path="results/video_heatmap.mp4",
+    participant_id=0,
+    model_type="DF-1",
+)
+```
+
+### Save video with bounding boxes (DF-1)
+```
+from authenta.visualization import save_bounding_box_video
+
+media = client.process("examples/video.mp4", model_type="DF-1")
+
+save_bounding_box_video(
+    media,
+    src_video_path="examples/video.mp4",              # original input
+    out_video_path="results/video_bboxes.mp4",       # output with boxes
+    participant_id=0,
+)
+```
+This function downloads the detailed JSON at `media["resultURL"]`, converts the per-frame `boundingBoxes` into a sequence, and uses OpenCV to draw bounding boxes over each frame before writing a new MP4 file.
+
 ## Method reference
 
 ### `AuthentaClient`
@@ -146,7 +188,4 @@ client = AuthentaClient(
 - Deletes a media record via `DELETE /media/{mid}`.  
 - Raises an HTTP error if the request fails.
 
-
 [View source on GitHub](https://github.com/phospheneai/authenta-python-sdk/blob/main/src/authenta/authenta_client.py)
-
-
