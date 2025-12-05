@@ -1,4 +1,5 @@
 '''
+example usage:
 client = AuthentaClient(
     base_url="https://platform.authenta.ai/api",
     client_id="...",
@@ -31,7 +32,7 @@ class AuthentaClient:
         Create new Authenta client
 
         Args:
-            base_url: Authenta API base URL, e.g. "https://platform.authenta.ai/api".
+            base_url: Authenta API base URL, e.g. "https://platform.authenta.ai/api" or platform base URL : "https://platform.authenta.ai".
             client_id: Your Authenta client ID.
             client_secret: Your Authenta client secret.
         """
