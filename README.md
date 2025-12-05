@@ -148,5 +148,5 @@ client = AuthentaClient(
 
 
 [View source on GitHub](https://github.com/phospheneai/authenta-python-sdk/blob/main/src/authenta/authenta_client.py)
-```
+
 
