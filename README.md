@@ -18,7 +18,7 @@ pip install authenta
 **Option B: Local Development**
 If you want to modify the SDK source code:
 ```bash
-git clone [https://github.com/phospheneai/authenta-python-sdk.git](https://github.com/phospheneai/authenta-python-sdk.git)
+git clone https://github.com/phospheneai/authenta-python-sdk.git
 cd authenta-python-sdk
 pip install -e .
 ```
