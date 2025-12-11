@@ -87,7 +87,7 @@ media = client.upload_file("samples/nano_img.png", model_type="AC-1")
 print(media["mid"], media["status"])
 ```
 
-### Detect deepfake videos (`DF-1`)
+### Detect deepfake faceswap videos (`DF-1`)
 ```
 from authenta import AuthentaClient
 
