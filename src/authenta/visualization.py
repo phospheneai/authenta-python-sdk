@@ -7,6 +7,8 @@ import os
 import cv2
 import requests
 from PIL import Image
+from pathlib import Path
+
 
 
 # -------------------------
@@ -125,7 +127,6 @@ def save_heatmap_image(
 ) -> str:
     """
     Download and save the heatmap as an image.
-    Intended mainly for image model outputs (e.g. AC-1).
     Returns the output path.
     """
     # AC-1: heatmapURL
@@ -136,8 +137,7 @@ def save_heatmap_image(
     resp = requests.get(heatmap_url, timeout=30)
     if resp.status_code == 404:
         raise RuntimeError(
-            "Heatmap not available (404). The presigned URL may have expired; "
-            "please re-run detection and save the heatmap soon after."
+            "Heatmap not available (404)"
         )
     resp.raise_for_status()
 
@@ -150,37 +150,48 @@ def save_heatmap_image(
 def save_heatmap_video(
     media: Dict[str, Any],
     out_path: str,
-) -> str:
+) -> List[str]:
     """
-    Download and save the DF-1 participant heatmap video.
+    Download and save DF-1 participant heatmap videos.
 
-    Currently selects the first participant.
-    Returns the output path.
+    Returns the list of successfully saved paths.
     """
     participants = media.get("participants") or []
     if not participants:
         raise RuntimeError("No participants found in media for video heatmap")
 
-    participant = participants[0]  
-    heatmap_url = participant.get("heatmap", "")
-    if not heatmap_url:
-        raise RuntimeError("No heatmap URL found for selected participant")
+    base = Path(out_path)
+    stem = base.stem
+    suffix = base.suffix or ".mp4"
+    parent = base.parent
 
-    resp = requests.get(heatmap_url, stream=True, timeout=60)
-    if resp.status_code == 404:
-        raise RuntimeError(
-            "Heatmap not available (404). The presigned URL may have expired "
-            "or is not yet available. Please re-run detection and save the "
-            "heatmap soon after."
-        )
-    resp.raise_for_status()
+    os.makedirs(parent, exist_ok=True)
 
-    _ensure_dir(out_path)
-    with open(out_path, "wb") as f:
-        for chunk in resp.iter_content(chunk_size=8192):
-            if chunk:
-                f.write(chunk)
-    return out_path
+    outputs: List[str] = []
+
+    for idx, p in enumerate(participants):
+        heatmap_url = p.get("heatmap", "")
+        if not heatmap_url:
+            print(f"[warn] no heatmap URL for participant {idx}, skipping")
+            continue
+
+        print(f"downloading participant {idx}…")
+        resp = requests.get(heatmap_url, stream=True, timeout=60)
+        if resp.status_code in (403, 404):
+            print(f"[warn] participant {idx} heatmap returned {resp.status_code}, skipping")
+            continue
+        resp.raise_for_status()
+
+        dest = parent / f"{stem}_p{idx}{suffix}"
+        with open(dest, "wb") as f:
+            for chunk in resp.iter_content(chunk_size=8192):
+                if chunk:
+                    f.write(chunk)
+
+        outputs.append(str(dest))
+        print(f"saved {dest}")
+
+    return outputs
 
 
 def save_heatmap(
