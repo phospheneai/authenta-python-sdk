@@ -149,23 +149,15 @@ def save_heatmap_image(
 
 def save_heatmap_video(
     media: Dict[str, Any],
-    out_path: str,
+    out_dir: str,
+    base_name: str = "heatmap",
 ) -> List[str]:
-    """
-    Download and save DF-1 participant heatmap videos.
-
-    Returns the list of successfully saved paths.
-    """
     participants = media.get("participants") or []
     if not participants:
         raise RuntimeError("No participants found in media for video heatmap")
 
-    base = Path(out_path)
-    stem = base.stem
-    suffix = base.suffix or ".mp4"
-    parent = base.parent
-
-    os.makedirs(parent, exist_ok=True)
+    parent = Path(out_dir)
+    parent.mkdir(parents=True, exist_ok=True)
 
     outputs: List[str] = []
 
@@ -182,7 +174,7 @@ def save_heatmap_video(
             continue
         resp.raise_for_status()
 
-        dest = parent / f"{stem}_p{idx}{suffix}"
+        dest = parent / f"{base_name}_p{idx}.mp4"
         with open(dest, "wb") as f:
             for chunk in resp.iter_content(chunk_size=8192):
                 if chunk:
