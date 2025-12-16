@@ -87,34 +87,43 @@ The SDK includes a `visualization` module to generate visual overlays (heatmaps 
 **1. Heatmaps (Images & Video)**
 Generate a visual heatmap indicating manipulated regions.
 ```python
+
 from authenta.visualization import save_heatmap
+media = client.process("data_samples/nano_img2.png", model_type="AC-1")
+# simply pass the media and output dir 
+save_heatmap(
+    media=media,
+    out_path="results/image_heatmap.jpg",
+    model_type="AC-1",
+)
 
-# Process media first
-media = client.process("examples/image.jpg", model_type="AC-1")
-
-# Save the heatmap overlay
+```
+Generate an activation heatmap  indicating manipulated regions for faceswap detection .
+```python
+from authenta.visualization import *
+media = client.process("data_samples/test_00000121.mp4", model_type="DF-1")
 save_heatmap(
     media,
-    out_path="results/heatmap_output.jpg",
-    participant_id=0,
-    model_type="AC-1"
+    out_path="results/deepfake_heatmap.mp4",
+    model_type="DF-1",
 )
 ```
 
 **2. Bounding Box Video (DF-1 Only)**
 Draw detection boxes around faces in a deepfake video.
 ```python
-from authenta.visualization import save_bounding_box_video
+from authenta.visualization import *
 
-media = client.process("examples/deepfake.mp4", model_type="DF-1")
+media = client.process("data_samples/test_00000121.mp4", model_type="DF-1")
 
 save_bounding_box_video(
     media,
-    src_video_path="examples/deepfake.mp4",
+    src_video_path="data_samples/test_00000121.mp4",
     out_video_path="results/analyzed_video.mp4",
-    participant_id=0
 )
+
 ```
+
 
 ---
 
