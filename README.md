@@ -1,191 +1,151 @@
-# Authenta Python SDK
+# Authenta SDK Documentation
 
-Python client for the Authenta API to detect deepfakes and manipulated media using image and video models.
+Welcome to the official documentation for the **Authenta Python SDK**. This library allows you to integrate state-of-the-art deepfake and manipulated media detection into your Python applications.
 
-## Installation
+---
 
-Follow the steps below to install the `authenta` package.
+## 1. Getting Started
 
-### Install from PyPI
-```
+### Installation
+
+You can install the SDK via `pip` for production use or install from source for local development.
+
+**Option A: Install from PyPI (Recommended)**
+```bash
 pip install authenta
 ```
 
-### (Optional) Local development
-```
+**Option B: Local Development**
+If you want to modify the SDK source code:
+```bash
 git clone https://github.com/phospheneai/authenta-python-sdk.git
 cd authenta-python-sdk
 pip install -e .
 ```
 
-## Basic functionalities and workflows
+### Authentication & Initialization
 
-The package provides basic functionalities for:
+To use the SDK, you must initialize the `AuthentaClient` with your API credentials.
 
-- Uploading images and videos to Authenta
-- Running deepfake / AI-generated content detection
-- Polling for results and retrieving detection outputs
-- Listing and deleting media records via the `/media` endpoints
-
-### 1. Quick detection workflow
-```
+```python
 from authenta import AuthentaClient
 
 client = AuthentaClient(
-    base_url="https://platform.authenta.ai/api",  # platform base: https://platform.authenta.ai 
+    base_url="https://platform.authenta.ai/api",
     client_id="YOUR_CLIENT_ID",
     client_secret="YOUR_CLIENT_SECRET",
 )
+```
 
-# Upload a file and wait for processing to finish
+---
+
+## 2. Models & Capabilities
+
+Authenta provides specialized models for different media types. You select the model using the `model_type` parameter in SDK methods.
+
+| Model Type | Modality | Capability |
+| :--- | :--- | :--- |
+| **`AC-1`** | Image | **AI-Generated Image Detection:** Identifies images created by Generative AI (e.g., Midjourney, Stable Diffusion) or manipulated via editing tools. |
+| **`DF-1`** | Video | **Deepfake Video Detection:** Detects face swaps, reenactments, and other facial manipulations in video content. |
+
+---
+
+## 3. Workflows
+
+### Quick Detection (Synchronous)
+Use the `.process()` method to handle uploading and waiting for results in a single blocking call. This is ideal for scripts or simple integrations.
+
+```python
+# Example: Detect AI-generated image
 media = client.process("samples/nano_img.png", model_type="AC-1")
-print("Status:", media["status"])
-print("Fake:", media.get("fake"))
-print("Result URL:", media.get("resultURL"))
-print("Heatmap URL:", media.get("heatmapURL"))
+
+print(f"Media ID: {media['mid']}")
+print(f"Status: {media['status']}")
+print(f"Is Fake?: {media.get('fake')}")
 ```
 
-### 2. Two-step upload and polling
-```
-from authenta import AuthentaClient
+### Async Upload & Polling
+For non-blocking workflows (e.g., web servers), use a two-step process: upload first, then poll for status using the Media ID (`mid`).
 
-client = AuthentaClient(
-    base_url="https://platform.authenta.ai/api",
-    client_id="YOUR_CLIENT_ID",
-    client_secret="YOUR_CLIENT_SECRET",
-)
-
-# 1) Upload only
-upload_meta = client.upload_file("samples/nano_img.png", model_type="AC-1")
+```python
+# 1. Initiate Upload
+upload_meta = client.upload_file("samples/video.mp4", model_type="DF-1")
 mid = upload_meta["mid"]
+print(f"Upload started. Media ID: {mid}")
 
-# 2) Poll later using the media id
+# ... perform other tasks ...
+
+# 2. Check Status Later
 final_media = client.wait_for_media(mid)
-print(final_media["status"], final_media.get("fake"))
+if final_media["status"] == "PROCESSED":
+    print(f"Result: {final_media.get('fake')}")
 ```
 
-## Model types and usage
+### Visualizing Results
+The SDK includes a `visualization` module to generate visual overlays (heatmaps and bounding boxes) to help you interpret detection results.
 
-Authenta exposes different detection models that you select via the `model_type` parameter.
-
-| Model type | Modality | Description                                           |
-|-------------|-----------|-------------------------------------------------------|
-| `AC-1`      | Image     | Detects AI-generated or manipulated images.           |
-| `DF-1`      | Video     | Detects deepfake or manipulated faces in video content. |
-
-### Detect AI-generated images (`AC-1`)
-```
-from authenta import AuthentaClient
-
-client = AuthentaClient(
-    base_url="https://platform.authenta.ai/api",
-    client_id="YOUR_CLIENT_ID",
-    client_secret="YOUR_CLIENT_SECRET",
-)
-
-media = client.upload_file("samples/nano_img.png", model_type="AC-1")
-print(media["mid"], media["status"])
-```
-
-### Detect deepfake videos (`DF-1`)
-```
-from authenta import AuthentaClient
-
-client = AuthentaClient(
-    base_url="https://platform.authenta.ai/api",
-    client_id="YOUR_CLIENT_ID",
-    client_secret="YOUR_CLIENT_SECRET",
-)
-
-media = client.upload_file("samples/video.mp4", model_type="DF-1")
-print(media["mid"], media["status"])
-```
-
-## Visualizing results
-
-The SDK provides helpers in `authenta.visualization` to save heatmaps and videos with bounding boxes to your local disk.
-
-### Save heatmap (image or video)
-```
+**1. Heatmaps (Images & Video)**
+Generate a visual heatmap indicating manipulated regions.
+```python
 from authenta.visualization import save_heatmap
 
-# For AC-1 (image): saves a heatmap image (e.g. JPG/PNG)
+# Process media first
 media = client.process("examples/image.jpg", model_type="AC-1")
-save_heatmap(
-    media,
-    out_path="results/image_heatmap.jpg",
-    participant_id=0,
-    model_type="AC-1",
-)
 
-# For DF-1 (video): saves a heatmap video (e.g. MP4)
-media = client.process("examples/video.mp4", model_type="DF-1")
+# Save the heatmap overlay
 save_heatmap(
     media,
-    out_path="results/video_heatmap.mp4",
+    out_path="results/heatmap_output.jpg",
     participant_id=0,
-    model_type="DF-1",
+    model_type="AC-1"
 )
 ```
 
-### Save video with bounding boxes (DF-1)
-```
+**2. Bounding Box Video (DF-1 Only)**
+Draw detection boxes around faces in a deepfake video.
+```python
 from authenta.visualization import save_bounding_box_video
 
-media = client.process("examples/video.mp4", model_type="DF-1")
+media = client.process("examples/deepfake.mp4", model_type="DF-1")
 
 save_bounding_box_video(
     media,
-    src_video_path="examples/video.mp4",              # original input
-    out_video_path="results/video_bboxes.mp4",       # output with boxes
-    participant_id=0,
-)
-```
-This function downloads the detailed JSON at `media["resultURL"]`, converts the per-frame `boundingBoxes` into a sequence, and uses OpenCV to draw bounding boxes over each frame before writing a new MP4 file.
-
-## Method reference
-
-### `AuthentaClient`
-
-The main entrypoint for interacting with the Authenta API.
-
-#### Initialization
-```
-from authenta import AuthentaClient
-
-client = AuthentaClient(
-    base_url="https://platform.authenta.ai/api",
-    client_id="YOUR_CLIENT_ID",
-    client_secret="YOUR_CLIENT_SECRET",
+    src_video_path="examples/deepfake.mp4",
+    out_video_path="results/analyzed_video.mp4",
+    participant_id=0
 )
 ```
 
-- `base_url: str` – Authenta API base URL (e.g. `https://platform.authenta.ai/api`).
-- `client_id: str` – Your Authenta client ID.
-- `client_secret: str` – Your Authenta client secret.
+---
 
-#### `upload_file(path: str, model_type: str) -> Dict[str, Any]`
-- Creates a media record via `POST /media` and uploads the file to the returned presigned URL.  
-- Returns media JSON including fields such as `mid`, `status`, `modelType`, and timestamps.
+## 4. API Reference
 
-#### `wait_for_media(mid: str, interval: float = 5.0, timeout: float = 600.0) -> Dict[str, Any]`
-- Polls `GET /media/{mid}` until the status is `PROCESSED`, `FAILED`, or `ERROR`.  
-- Sleeps `interval` seconds between polls and raises `TimeoutError` if `timeout` is exceeded.
+### Class: `AuthentaClient`
 
-#### `process(path: str, model_type: str, interval: float = 5.0, timeout: float = 600.0) -> Dict[str, Any]`
-- High-level helper that runs `upload_file` followed by `wait_for_media`.  
-- Returns the final processed media JSON, including detection outputs like `fake`, `resultURL`, `heatmapURL`, and scores (when available).
+#### `__init__(base_url, client_id, client_secret)`
+Initializes the client session.
 
-#### `get_media(mid: str) -> Dict[str, Any]`
-- Fetches the current state of a media record via `GET /media/{mid}`.  
-- Returns the parsed JSON media object.
+#### `process(path: str, model_type: str, interval: float = 5.0, timeout: float = 600.0) -> Dict`
+A high-level wrapper that combines upload and polling.
+* **Returns:** A dictionary containing the final processed media state.
+* **Raises:** `TimeoutError` if processing exceeds `timeout`.
 
-#### `list_media(**params) -> Dict[str, Any]`
-- Lists media records for the client using `GET /media`.  
-- Supports optional query parameters such as `page`, `pageSize`, or `status` (depending on API support).
+#### `upload_file(path: str, model_type: str) -> Dict`
+Uploads a file to the Authenta platform.
+* **path:** Local path to the image or video file.
+* **model_type:** `AC-1` (Image) or `DF-1` (Video).
+* **Returns:** Dictionary with initial metadata (including `mid`).
+
+#### `wait_for_media(mid: str, interval: float = 5.0, timeout: float = 600.0) -> Dict`
+Blocks execution until the media status becomes `PROCESSED` or `FAILED`.
+* **mid:** The Media ID returned from `upload_file`.
+
+#### `get_media(mid: str) -> Dict`
+Retrieves the current status and details of a specific media record.
+
+#### `list_media(**params) -> Dict`
+Lists historical media records.
+* **params:** Query parameters like `page`, `pageSize`.
 
 #### `delete_media(mid: str) -> None`
-- Deletes a media record via `DELETE /media/{mid}`.  
-- Raises an HTTP error if the request fails.
-
-[View source on GitHub](https://github.com/phospheneai/authenta-python-sdk/blob/main/src/authenta/authenta_client.py)
+Permanently removes a media record and its associated data from the platform.
