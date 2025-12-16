@@ -31,7 +31,7 @@ To use the SDK, you must initialize the `AuthentaClient` with your API credentia
 from authenta import AuthentaClient
 
 client = AuthentaClient(
-    base_url="https://platform.authenta.ai/api",
+    base_url="https://platform.authenta.ai",
     client_id="YOUR_CLIENT_ID",
     client_secret="YOUR_CLIENT_SECRET",
 )
