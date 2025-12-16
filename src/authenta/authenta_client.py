@@ -1,7 +1,7 @@
 '''
 example usage:
 client = AuthentaClient(
-    base_url="https://platform.authenta.ai/api",
+    base_url="https://platform.authenta.ai",
     client_id="...",
     client_secret="...",
 )
@@ -22,8 +22,8 @@ class AuthentaClient:
 
     Features:
     - Builds Auth headers with x-client-id / x-client-secret.
-    - Wraps /media endpoints for create, get, list, delete.
-    - Implements two-step upload (POST /media -> PUT to S3).
+    - Wraps /api/media endpoints for create, get, list, delete.
+    - Implements two-step upload (POST /api/media -> PUT to S3).
     - Process deepfake-detection
     """
 
@@ -32,7 +32,7 @@ class AuthentaClient:
         Create new Authenta client
 
         Args:
-            base_url: Authenta API base URL, e.g. "https://platform.authenta.ai/api" or platform base URL : "https://platform.authenta.ai".
+            base_url: Authenta API base URL, eg : "https://platform.authenta.ai".
             client_id: Your Authenta client ID.
             client_secret: Your Authenta client secret.
         """
@@ -65,7 +65,7 @@ class AuthentaClient:
         model_type: str,
     ) -> Dict[str, Any]:
         """
-        POST /media: create a media record and get an upload URL.
+        POST /api/media: create a media record and get an upload URL.
 
         Args:
             name: Original file name.
@@ -78,7 +78,7 @@ class AuthentaClient:
         Returns:
             Parsed JSON response containing at least 'mid' and 'uploadUrl'.
         """
-        url = f"{self.base_url}/media"
+        url = f"{self.base_url}/api/media"
         payload = {
             "name": name,
             "contentType": content_type,
@@ -91,7 +91,7 @@ class AuthentaClient:
 
     def get_media(self, mid: str) -> Dict[str, Any]:
         """
-        GET /media/{mid}: fetch a single media record.
+        GET /api/media/{mid}: fetch a single media record.
 
         Args:
             mid: Media ID returned by create_media / upload_file.
@@ -99,7 +99,7 @@ class AuthentaClient:
         Returns:
             Parsed JSON media record.
         """
-        url = f"{self.base_url}/media/{mid}"
+        url = f"{self.base_url}/api/media/{mid}"
         resp = requests.get(url, headers=self._headers(), timeout=30)
         resp.raise_for_status()
         return resp.json()
@@ -109,7 +109,7 @@ class AuthentaClient:
         Upload a file via the two-step Authenta media flow.
 
         Steps:
-            1) POST /media to create the record and obtain 'mid' + 'uploadUrl'.
+            1) POST /api/media to create the record and obtain 'mid' + 'uploadUrl'.
             2) PUT the file bytes to the presigned S3 'uploadUrl'.
 
         Args:
@@ -117,7 +117,7 @@ class AuthentaClient:
             model_type: Detection model type to use, e.g. "AC-1" or "DF-1".
 
         Returns:
-            The JSON response from POST /media (includes 'mid', 'status', etc.).
+            The JSON response from POST /api/media (includes 'mid', 'status', etc.).
         """
         filename = os.path.basename(path)
         content_type = self._content_type(path)
@@ -163,10 +163,10 @@ class AuthentaClient:
 
     def list_media(self, **params) -> Dict[str, Any]:
         """
-        GET /media: list media for this client.
+        GET /api/media: list media for this client.
         Accepts optional query params (page, pageSize, filters) if the API supports them.
         """
-        url = f"{self.base_url}/media"
+        url = f"{self.base_url}/api/media"
         resp = requests.get(url, headers=self._headers(), params=params, timeout=30)
         resp.raise_for_status()
         return resp.json()
@@ -193,9 +193,9 @@ class AuthentaClient:
 
     def delete_media(self, mid: str) -> None:
         
-        """ DELETE /media/{mid}: delete a media record """
+        """ DELETE /api/media/{mid}: delete a media record """
         
-        url = f"{self.base_url}/media/{mid}"
+        url = f"{self.base_url}/api/media/{mid}"
         resp = requests.delete(url, headers=self._headers(), timeout=30)
         resp.raise_for_status()
 
