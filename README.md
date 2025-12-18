@@ -98,19 +98,19 @@ save_heatmap(
 )
 
 ```
-Generate an activation heatmap  indicating manipulated regions for faceswap detection .
+Generate an activation heatmap indicating manipulated regions for faceswap detection.
 ```python
 from authenta.visualization import *
 media = client.process("data_samples/test_00000121.mp4", model_type="DF-1")
 save_heatmap(
     media,
-    out_path="results/deepfake_heatmap.mp4",
-    model_type="DF-1",
+    out_path="./results", # give folder path , because multiple face may give multiple heatmaps for each faces
+    model_type="DF-1",  
 )
 ```
 
 **2. Bounding Box Video (DF-1 Only)**
-Draw detection boxes around faces in a deepfake video.
+Draw detection boxes around faces in a deepfake video and save it in local.
 ```python
 from authenta.visualization import *
 
