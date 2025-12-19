@@ -3,6 +3,7 @@ from __future__ import annotations
 from io import BytesIO
 from typing import Dict, Any, List, Optional
 import os
+import mimetypes
 
 import cv2
 import requests
@@ -146,13 +147,13 @@ def save_heatmap_image(
     img.save(out_path)
     return out_path
 
-
 def save_heatmap_video(
     media: Dict[str, Any],
     out_dir: str,
     base_name: str = "heatmap",
 ) -> List[str]:
     participants = media.get("participants") or []
+    print(f"found {len(participants)} participants in media")
     if not participants:
         raise RuntimeError("No participants found in media for video heatmap")
 
@@ -162,19 +163,23 @@ def save_heatmap_video(
     outputs: List[str] = []
 
     for idx, p in enumerate(participants):
-        heatmap_url = p.get("heatmap", "")
+        heatmap_url = p.get("heatmap")
+        print(f"participant {idx} heatmap URL: {heatmap_url}")
         if not heatmap_url:
             print(f"[warn] no heatmap URL for participant {idx}, skipping")
             continue
 
         print(f"downloading participant {idx}…")
-        resp = requests.get(heatmap_url, stream=True, timeout=60)
+        resp = requests.get(heatmap_url, stream=True, timeout=120)
         if resp.status_code in (403, 404):
             print(f"[warn] participant {idx} heatmap returned {resp.status_code}, skipping")
             continue
         resp.raise_for_status()
 
-        dest = parent / f"{base_name}_p{idx}.mp4"
+        content_type = resp.headers.get("Content-Type", "")
+        ext = mimetypes.guess_extension(content_type.split(";")[0]) or ".mp4"
+
+        dest = parent / f"{base_name}_p{idx}{ext}"
         with open(dest, "wb") as f:
             for chunk in resp.iter_content(chunk_size=8192):
                 if chunk:
@@ -184,7 +189,6 @@ def save_heatmap_video(
         print(f"saved {dest}")
 
     return outputs
-
 
 def save_heatmap(
     media: Dict[str, Any],
@@ -390,3 +394,77 @@ def save_bounding_box_video(
     )
     draw_bounding_boxes(src_video_path, sequence_dict, out_video_path)
     return out_video_path
+
+# -------------------------
+# Artefact savers
+# -------------------------
+
+def save_image_artefacts(
+    media: Dict[str, Any],
+    out_dir: str,
+    base_name: str = "image",
+) -> Dict[str, str]:
+    """
+    Save all visual artefacts for an image (AC-1).
+    Args:
+        media: AC-1 media JSON returned by AuthentaClient.process(...).
+        out_dir: Output directory where artefacts will be saved.
+        base_name: Base name for files (default: "image").
+    Returns:
+        Dict with keys like:
+            {
+              "heatmap": "<out_dir>/<base_name>_heatmap.jpg"
+            }
+    """
+    out_path = str(Path(out_dir) / f"{base_name}_heatmap.jpg")
+    path = save_heatmap_image(media, out_path)
+    return {"heatmap": path}
+
+
+def save_video_artefacts(
+    media: Dict[str, Any],
+    src_video_path: str,
+    out_dir: str,
+    base_name: str = "video",
+) -> Dict[str, Any]:
+    """
+    Save all visual artefacts for a deepfake video (DF-1).
+    Args:
+        media: DF-1 media JSON returned by AuthentaClient.process(...).
+        src_video_path: Path to the original input video.
+        out_dir: Output directory where artefacts will be saved.
+        base_name: Base name for files (default: "video").
+    Returns:
+        Dict with keys like:
+            {
+              "heatmaps": [
+                  "<out_dir>/<base_name>_heatmap_p0.mp4",
+                  "<out_dir>/<base_name>_heatmap_p1.mp4",
+                  ...
+              ],
+              "bbox_video": "<out_dir>/<base_name>_bbox.mp4",
+            }
+    """
+    out_dir_path = Path(out_dir)
+    out_dir_path.mkdir(parents=True, exist_ok=True)
+
+    # 1) Heatmap videos per participant
+    heatmap_base = f"{base_name}_heatmap"
+    heatmap_paths = save_heatmap_video(
+        media=media,
+        out_dir=str(out_dir_path),
+        base_name=heatmap_base,
+    )
+
+    # 2) Bounding-box annotated video
+    bbox_path = str(out_dir_path / f"{base_name}_bbox.mp4")
+    save_bounding_box_video(
+        media=media,
+        src_video_path=src_video_path,
+        out_video_path=bbox_path,
+    )
+
+    return {
+        "heatmap": heatmap_paths,
+        "bbox_video": bbox_path,
+    }
